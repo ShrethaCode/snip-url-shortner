@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Link Expired — Snip</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <div class="status-badge expired-badge">410 Expired</div>
+      <h1>This link has expired</h1>
+      <p class="tagline">The link <code>/{{ code }}</code> was set to expire and is no longer accessible.</p>
+    </header>
+
+    <div class="card error-detail-card">
+      <p class="card-description">
+        Short links can be configured with an expiration timer. Once that time window closes, the link automatically deactivates to keep destinations secure and temporary.
+      </p>
+      {% if row and row.get('expires_at') %}
+        <p class="meta-note">Expired on: <strong>{{ row.get('expires_at') }} UTC</strong></p>
+      {% endif %}
+    </div>
+
+    <div class="actions-row">
+      <a class="btn btn-primary" href="/">&larr; Create a new short link</a>
+    </div>
+  </main>
+</body>
+</html>

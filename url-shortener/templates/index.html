@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Snip — Fast & Simple URL Shortener</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <div class="brand-badge">Open Source URL Shortener</div>
+      <h1>Snip</h1>
+      <p class="tagline">Long links made short, clean, and measurable.</p>
+    </header>
+
+    <!-- Flash message alerts -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-messages">
+          {% for category, message in messages %}
+            <div class="flash-alert flash-{{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <!-- Shorten Form Card -->
+    <div class="card form-card">
+      <form class="shorten-form" method="post" action="/">
+        <label class="field-label" for="long_url">Paste a long URL</label>
+        <div class="input-row">
+          <input
+            id="long_url"
+            name="long_url"
+            type="text"
+            placeholder="https://example.com/very/long/web/address"
+            value="{{ long_url_val }}"
+            autocomplete="off"
+            autofocus
+            required
+          >
+          <button type="submit" class="btn btn-primary">Shorten</button>
+        </div>
+
+        {% if error %}
+          <div class="error-banner">{{ error }}</div>
+        {% endif %}
+
+        <!-- Collapsible Advanced Options -->
+        <details class="advanced-details" {% if custom_code_val or expiry_val != 'never' %}open{% endif %}>
+          <summary class="advanced-summary">Advanced options (custom alias & expiration)</summary>
+          <div class="advanced-grid">
+            <div class="form-group">
+              <label for="custom_code" class="sub-label">Custom alias (optional)</label>
+              <div class="prefix-input">
+                <span class="prefix">snip/</span>
+                <input
+                  id="custom_code"
+                  name="custom_code"
+                  type="text"
+                  placeholder="my-cool-link"
+                  value="{{ custom_code_val }}"
+                  autocomplete="off"
+                >
+              </div>
+              <small class="field-hint">3–30 characters: letters, numbers, hyphens, underscores.</small>
+            </div>
+
+            <div class="form-group">
+              <label for="expiry" class="sub-label">Link expiration</label>
+              <select id="expiry" name="expiry" class="select-input">
+                <option value="never" {% if expiry_val == 'never' %}selected{% endif %}>Never expires</option>
+                <option value="1h" {% if expiry_val == '1h' %}selected{% endif %}>1 Hour</option>
+                <option value="24h" {% if expiry_val == '24h' %}selected{% endif %}>24 Hours</option>
+                <option value="7d" {% if expiry_val == '7d' %}selected{% endif %}>7 Days</option>
+                <option value="30d" {% if expiry_val == '30d' %}selected{% endif %}>30 Days</option>
+              </select>
+              <small class="field-hint">Link deactivates automatically after this duration.</small>
+            </div>
+          </div>
+        </details>
+      </form>
+    </div>
+
+    <!-- Success Result Card -->
+    {% if created_link %}
+      <section class="card result-card">
+        <div class="result-header">
+          <span class="result-badge">Ready to share</span>
+          <a class="stats-shortcut" href="{{ created_link.stats_url }}">View Analytics & QR &rarr;</a>
+        </div>
+        <div class="result-link-row">
+          <a class="short-link-main" id="createdShortUrl" href="{{ created_link.short_url }}" target="_blank">
+            {{ created_link.short_url }}
+          </a>
+          <div class="result-actions">
+            <button
+              type="button"
+              class="btn btn-secondary btn-copy"
+              data-clipboard="{{ created_link.short_url }}"
+              onclick="copyToClipboard('{{ created_link.short_url }}', this)"
+            >
+              Copy
+            </button>
+            <a href="{{ created_link.stats_url }}" class="btn btn-outline">Stats & QR</a>
+          </div>
+        </div>
+        <p class="destination-preview">
+          Redirects to: <span title="{{ created_link.long_url }}">{{ created_link.long_url }}</span>
+        </p>
+      </section>
+    {% endif %}
+
+    <!-- Recent Links Section -->
+    <section class="recent-section">
+      <div class="recent-header">
+        <h2>Your Links</h2>
+        <div class="search-box">
+          <input
+            type="text"
+            id="linkSearchInput"
+            placeholder="Search links..."
+            oninput="filterLinks()"
+          >
+        </div>
+      </div>
+
+      {% if links %}
+        <div class="links-table-wrapper">
+          <table class="links-table" id="linksTable">
+            <thead>
+              <tr>
+                <th>Short Link</th>
+                <th>Destination</th>
+                <th>Clicks</th>
+                <th>Status</th>
+                <th class="actions-col">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for link in links %}
+                <tr class="link-row" data-search="{{ link.short_code }} {{ link.long_url }}">
+                  <td class="col-code">
+                    <a class="code-link" href="{{ url_for('follow_link', short_code=link.short_code) }}" target="_blank">
+                      /{{ link.short_code }}
+                    </a>
+                  </td>
+                  <td class="col-destination" title="{{ link.long_url }}">
+                    <span class="dest-truncate">{{ link.long_url }}</span>
+                  </td>
+                  <td class="col-clicks">
+                    <span class="clicks-pill">{{ link.clicks }}</span>
+                  </td>
+                  <td class="col-status">
+                    {% if link.is_expired %}
+                      <span class="pill pill-expired">Expired</span>
+                    {% else %}
+                      <span class="pill pill-active">Active</span>
+                    {% endif %}
+                  </td>
+                  <td class="col-actions">
+                    <div class="action-buttons">
+                      <button
+                        type="button"
+                        class="icon-btn"
+                        title="Copy short URL"
+                        onclick="copyToClipboard('{{ url_for('follow_link', short_code=link.short_code, _external=True) }}', this)"
+                      >
+                        &#x2398;
+                      </button>
+                      <a
+                        class="icon-btn"
+                        title="View analytics & QR"
+                        href="{{ url_for('link_stats', short_code=link.short_code) }}"
+                      >
+                        &#128202;
+                      </a>
+                      <form
+                        method="post"
+                        action="{{ url_for('delete_link_route', short_code=link.short_code) }}"
+                        onsubmit="return confirm('Delete short link /{{ link.short_code }}?');"
+                        style="display:inline;"
+                      >
+                        <button type="submit" class="icon-btn icon-btn-danger" title="Delete link">&times;</button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          <p id="noSearchResults" class="empty-notice" style="display: none;">
+            No links match your search.
+          </p>
+        </div>
+      {% else %}
+        <div class="empty-state card">
+          <p>No links created yet. Paste a link above to get started!</p>
+        </div>
+      {% endif %}
+    </section>
+
+    <footer class="page-footer">
+      <div class="footer-info">
+        Built with Python, Flask, and SQLite.
+      </div>
+      <div class="footer-links">
+        <a href="/api/links" target="_blank">JSON API (/api/links)</a>
+      </div>
+    </footer>
+  </main>
+
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

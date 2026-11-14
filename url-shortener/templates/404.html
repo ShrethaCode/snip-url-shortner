@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>404 Not Found — Snip</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <div class="status-badge not-found-badge">404 Error</div>
+      <h1>Link Not Found</h1>
+      <p class="tagline">The short link you followed does not exist.</p>
+    </header>
+
+    <div class="card error-detail-card">
+      <p class="card-description">
+        This link may have been mistyped, deleted by its creator, or was never created. Double-check the URL code or create a new shortened link below.
+      </p>
+    </div>
+
+    <div class="actions-row">
+      <a class="btn btn-primary" href="/">&larr; Back to Snip Dashboard</a>
+    </div>
+  </main>
+</body>
+</html>
